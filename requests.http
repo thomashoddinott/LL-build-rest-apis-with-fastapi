@@ -1,0 +1,11 @@
+### Good request
+http://localhost:8000/logs?start=2024-01-01&end=2024-01-02&level=ERROR
+
+### Bad start
+http://localhost:8000/logs?start=1/9/24&end=2024-01-02&level=ERROR
+
+### start after end
+http://localhost:8000/logs?start=2024-01-01&end=2023-01-02&level=ERROR
+
+### Unknown level
+http://localhost:8000/logs?start=2024-01-01&end=2024-01-02&level=CRITICAL

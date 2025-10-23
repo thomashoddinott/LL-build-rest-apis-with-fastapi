@@ -1,11 +1,33 @@
 import asyncio
 from time import sleep
-from fastapi import FastAPI
-
 from datetime import datetime
 from os import environ
+from fastapi import FastAPI, HTTPException
+
+import logs  # dummy db
 
 app = FastAPI()
+
+
+@app.get("/logs")
+def logs_query(start: datetime, end: datetime, level: str = None):
+    if start >= end:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="start must be before end"
+        )
+    if not level or not logs.is_valid_level(level):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="invalid log level"
+        )
+
+    records = logs.query(start, end, level)
+    if not records:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="no logs found")
+
+    return {
+        "count": len(records),
+        "records": records,
+    }
 
 
 @app.get("/info")
