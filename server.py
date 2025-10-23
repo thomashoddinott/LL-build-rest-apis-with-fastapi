@@ -4,7 +4,7 @@ from time import sleep
 from datetime import datetime, timedelta
 from os import environ
 from fastapi import FastAPI, HTTPException, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_serializer, Field
 from http import HTTPStatus
@@ -21,6 +21,37 @@ from db_challenge import VirtualMachine, insert, get
 
 
 app = FastAPI()
+
+
+# region CH4_02
+class Event(BaseModel):
+    time: datetime
+    user: str
+    action: str
+    uri: str
+
+
+def query_events(start_time: datetime):
+    """Dummy query for events."""
+    time = start_time
+    for _ in range(10):
+        time += timedelta(seconds=19)
+        event = Event(
+            time=time,
+            user="elliot",
+            action="read",
+            uri="file:///etc/passwd",
+        )
+        yield event.model_dump_json() + "\n"
+
+
+@app.get("/events")
+async def get_gen(start: datetime):
+    events = query_events(start)
+    return StreamingResponse(events)
+
+
+# endregion CH4_02
 
 
 # region CH4_01
