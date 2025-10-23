@@ -1,11 +1,12 @@
+# region all imports
 import asyncio
 from time import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import environ
 from fastapi import FastAPI, HTTPException, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, field_serializer, Field
 from http import HTTPStatus
 from typing import Annotated
 from PIL import Image
@@ -16,23 +17,52 @@ import logs  # dummy db
 import db
 from db_challenge import VirtualMachine, insert, get
 
+# endregion all imports
+
 
 app = FastAPI()
 
+
+# region CH4_01
+class TimeResponse(BaseModel):
+    delta: timedelta
+
+    @field_serializer("delta")
+    def serialize_delta(self, v: timedelta) -> float:
+        return int(v.total_seconds())
+
+
+@app.get("/time_delta")
+def time_diff(start: datetime, end: datetime) -> TimeResponse:
+    delta = end - start
+    return TimeResponse(delta=delta)
+
+
+# endregion CH4_01
+
 # region challenge
 VALID_IMAGES = {"ubuntu-24.04", "debian:bookworm", "alpine:3.20"}
+
+
 @app.post("/vm/start")
 def start_VM(vm: VirtualMachine):
     # validation
     if not (0 < vm.cpu_count < 65):
-        raise HTTPException(status_code=400, detail="cpu_count must be between 1 and 64")
+        raise HTTPException(
+            status_code=400, detail="cpu_count must be between 1 and 64"
+        )
     if not (8 < vm.mem_size_gb < 1025):
-        raise HTTPException(status_code=400, detail="mem_size_gb must be between 9 and 1024")
+        raise HTTPException(
+            status_code=400, detail="mem_size_gb must be between 9 and 1024"
+        )
     if vm.image not in VALID_IMAGES:
-        raise HTTPException(status_code=400, detail=f"image must be one of {VALID_IMAGES}")
+        raise HTTPException(
+            status_code=400, detail=f"image must be one of {VALID_IMAGES}"
+        )
 
     vm_id = insert(vm)
     return {"id": vm_id}
+
 
 @app.get("/vm/{key}")
 def get_vm(key: str) -> VirtualMachine:
@@ -46,6 +76,8 @@ def get_vm(key: str) -> VirtualMachine:
         image=record.image,
     )
     return vm
+
+
 # endregion
 
 # region CH3_04
@@ -101,6 +133,7 @@ def survey(
 # endregion
 
 
+# region everything else
 class Sale(BaseModel):
     time: datetime
     customer_id: str = Field(min_length=2)
@@ -188,6 +221,9 @@ async def sys_sleep():
 async def aio_sleep():
     await asyncio.sleep(1)
     return {"error": None}
+
+
+# endregion everything else
 
 
 if __name__ == "__main__":  # just run with `python server.py`
