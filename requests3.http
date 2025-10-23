@@ -1,0 +1,4 @@
+### Post image from file
+POST http://localhost:8000/size
+
+< cat.jpg

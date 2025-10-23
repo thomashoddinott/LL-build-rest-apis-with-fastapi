@@ -2,21 +2,49 @@ import asyncio
 from time import sleep
 from datetime import datetime
 from os import environ
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, HTTPException, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from http import HTTPStatus
-import logging
 from typing import Annotated
+from PIL import Image
+from io import BytesIO
 
+import logging
 import logs  # dummy db
 import db
 
 
 app = FastAPI()
 
-# CH3_03
+# region CH3_04
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@app.post("/size")
+async def size(request: Request):
+    size = int(request.headers.get("Content-Length", 0))
+    if not size:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="missing content-length header",
+        )
+    if size > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="image too large (max is 5MB)",
+        )
+
+    data = await request.body()
+    io = BytesIO(data)
+    img = Image.open(io)
+    return {"width": img.width, "height": img.height}
+
+
+# endregion
+
+# region CH3_03
 app.mount("/static", StaticFiles(directory="static"))
 
 logging.basicConfig(
@@ -40,7 +68,7 @@ def survey(
     )
 
 
-# /CH3_03
+# endregion
 
 
 class Sale(BaseModel):
