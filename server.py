@@ -2,15 +2,45 @@ import asyncio
 from time import sleep
 from datetime import datetime
 from os import environ
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from http import HTTPStatus
+import logging
+from typing import Annotated
 
 import logs  # dummy db
 import db
 
 
 app = FastAPI()
+
+# CH3_03
+app.mount("/static", StaticFiles(directory="static"))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+
+
+@app.post("/survey")
+# http://localhost:8000/static/survey.html
+def survey(
+    name: Annotated[str, Form()],
+    happy: Annotated[str, Form()],
+    talk: Annotated[str, Form()],
+):
+    logging.info("[survey] name: %r, happy: %r, talk: %r", name, happy, talk)
+    return RedirectResponse(
+        url="/static/thanks.html",
+        status_code=HTTPStatus.FOUND,
+    )
+
+
+# /CH3_03
 
 
 class Sale(BaseModel):
