@@ -14,9 +14,39 @@ from io import BytesIO
 import logging
 import logs  # dummy db
 import db
+from db_challenge import VirtualMachine, insert, get
 
 
 app = FastAPI()
+
+# region challenge
+VALID_IMAGES = {"ubuntu-24.04", "debian:bookworm", "alpine:3.20"}
+@app.post("/vm/start")
+def start_VM(vm: VirtualMachine):
+    # validation
+    if not (0 < vm.cpu_count < 65):
+        raise HTTPException(status_code=400, detail="cpu_count must be between 1 and 64")
+    if not (8 < vm.mem_size_gb < 1025):
+        raise HTTPException(status_code=400, detail="mem_size_gb must be between 9 and 1024")
+    if vm.image not in VALID_IMAGES:
+        raise HTTPException(status_code=400, detail=f"image must be one of {VALID_IMAGES}")
+
+    vm_id = insert(vm)
+    return {"id": vm_id}
+
+@app.get("/vm/{key}")
+def get_vm(key: str) -> VirtualMachine:
+    record = get(key)
+    if record is None:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="vm not found")
+
+    vm = VirtualMachine(
+        cpu_count=record.cpu_count,
+        mem_size_gb=record.mem_size_gb,
+        image=record.image,
+    )
+    return vm
+# endregion
 
 # region CH3_04
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB

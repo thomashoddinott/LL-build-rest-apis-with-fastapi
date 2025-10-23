@@ -1,0 +1,47 @@
+### Good request
+POST http://localhost:8000/vm/start
+Content-Type: application/json
+
+{
+    "cpu_count": 2,
+    "mem_size_gb": 32,
+    "image": "ubuntu-24.04"
+}
+
+# Copy returned id below
+### Get VM (change ID)
+# GET http://localhost:8000/vm/REPLACE_WITH_ID
+GET http://localhost:8000/vm/e8a65bbcbd2d4a61a9914cce924385de
+
+
+### Invalid CPU count (too high)
+POST http://localhost:8000/vm/start
+Content-Type: application/json
+
+{
+    "cpu_count": 100,
+    "mem_size_gb": 32,
+    "image": "ubuntu-24.04"
+}
+
+
+### Invalid memory (too low)
+POST http://localhost:8000/vm/start
+Content-Type: application/json
+
+{
+    "cpu_count": 4,
+    "mem_size_gb": 4,
+    "image": "ubuntu-24.04"
+}
+
+
+### Invalid image
+POST http://localhost:8000/vm/start
+Content-Type: application/json
+
+{
+    "cpu_count": 4,
+    "mem_size_gb": 32,
+    "image": "centos:7"
+}
