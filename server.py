@@ -3,7 +3,7 @@ import asyncio
 from time import sleep
 from datetime import datetime, timedelta
 from os import environ
-from fastapi import FastAPI, HTTPException, Form, Request
+from fastapi import FastAPI, HTTPException, Form, Request, Response
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_serializer, Field
@@ -21,6 +21,45 @@ from db_challenge import VirtualMachine, insert, get
 
 
 app = FastAPI()
+
+# region CH4_03
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@app.post("/resize")
+async def resize(width: int, height: int, request: Request):
+    size = int(request.headers.get("Content-Length", 0))
+    if not size:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="missing content-length header",
+        )
+    if size > MAX_IMAGE_SIZE:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="image too large (max is 5MB)",
+        )
+
+    if width <= 0 or height <= 0:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="width and height must be positive",
+        )
+
+    data = await request.body()
+    io = BytesIO(data)
+    img = Image.open(io)
+    img = img.resize((width, height))
+    out = BytesIO()
+    img.save(out, format="PNG")
+    return Response(
+        content=out.getvalue(),
+        status_code=HTTPStatus.OK,
+        media_type="image/png",
+    )
+
+
+# endregion CH4_03
 
 
 # region CH4_02

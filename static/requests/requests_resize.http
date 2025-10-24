@@ -1,0 +1,4 @@
+### Post image from file
+POST http://localhost:8000/resize?width=200&height=250
+
+< cat.jpg
