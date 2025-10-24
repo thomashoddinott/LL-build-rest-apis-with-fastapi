@@ -26,6 +26,23 @@ import db_challenge_ch04
 
 app = FastAPI()
 
+if __name__ == "__main__":  # production `python server.py`
+    from argparse import ArgumentParser
+
+    import uvicorn
+    from config import settings
+
+    parser = ArgumentParser()
+    parser.add_argument("--port", type=int, default=settings.port)
+    args = parser.parse_args()
+
+    settings.update(vars(args))
+
+    if settings.port < 0 or settings.port > 65_535:
+        raise SystemExit(f"error: invalid port - {settings.port}")
+
+    uvicorn.run(app, port=settings.port)
+
 
 # region CH4_challenge
 class Log(BaseModel):
@@ -394,9 +411,3 @@ async def aio_sleep():
 
 
 # endregion everything else
-
-
-if __name__ == "__main__":  # just run with `python server.py`
-    import uvicorn
-
-    uvicorn.run(app)
