@@ -15,14 +15,11 @@ from pydantic import BaseModel, field_serializer, Field
 from http import HTTPStatus
 from typing import Annotated
 from PIL import Image
-from io import BytesIO
+from io import BytesIO, StringIO
 
-import logging
-import yaml
-import logs  # dummy db
-import db
+import logging, csv, logs
 from db_challenge import VirtualMachine, insert, get
-from db_challenge_ch04 import query_logs
+import db_challenge_ch04
 
 # endregion all imports
 
@@ -31,47 +28,62 @@ app = FastAPI()
 
 
 # region CH4_challenge
-import yaml
-from fastapi.responses import PlainTextResponse
+class Log(BaseModel):
+    level: str
+    time: datetime
+    message: str
+
+
+class LogsResponse(BaseModel):
+    count: int
+    offset: int
+    logs: list[Log]
 
 
 @app.get("/logs")
-def get_logs(
-    offset: int = Query(0, ge=0),
-    count: int = Query(100, ge=1, le=1000),
-    request: Request = None,
-):
-    logs_list = list(query_logs(offset, count))
-
-    if not logs_list:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="no logs found")
-
-    accept = request.headers.get("accept", "").lower()
-
-    if "text/csv" in accept:
-        lines = ["level,time,message"]
-        for log in logs_list:
-            lines.append(f"{log['level']},{log['time'].isoformat()},{log['message']}")
-        return PlainTextResponse("\n".join(lines), media_type="text/csv")
-
-    elif "application/yaml" in accept:
-        yaml_data = yaml.dump(
-            {
-                "count": len(logs_list),
-                "offset": offset,
-                "logs": logs_list,
-            },
-            sort_keys=False,
-            default_flow_style=False,
+def query_logs(req: Request, count: int = 100, offset: int = 0):
+    if count < 1 or offset < 0:
+        return Response(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content="bad count or offset",
         )
-        return PlainTextResponse(yaml_data, media_type="application/yaml")
+    mime_type = req.headers.get("Accept", "application/json")
+    if mime_type == "*/*":
+        mime_type = "application/json"
+    if mime_type not in {"application/json", "text/csv"}:
+        return Response(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content="bad Accept",
+        )
 
-    # Default JSON
-    return {
-        "count": len(logs_list),
-        "offset": offset,
-        "logs": logs_list,
-    }
+    records = list(db_challenge_ch04.query_logs(offset, count))
+    if not records:
+        return Response(status_code=HTTPStatus.NOT_FOUND)
+
+    fn = json_response if mime_type == "application/json" else csv_response
+    return fn(records, offset)
+
+
+def json_response(records: list[dict], offset: int) -> LogsResponse:
+    logs = [Log(**r) for r in records]
+
+    return LogsResponse(count=len(records), offset=offset, logs=logs)
+
+
+def csv_response(logs: list[dict], _: int) -> Response:
+    io = StringIO()
+    writer = csv.DictWriter(io, fieldnames=["time", "level", "message"])
+    writer.writeheader()
+    writer.writerows(
+        {
+            "time": log["time"].isoformat(),
+            "level": log["level"],
+            "message": log["message"],
+        }
+        for log in logs
+    )
+
+    return Response(content=io.getvalue(), media_type="text/csv")
 
 
 # endregion CH4_challenge
