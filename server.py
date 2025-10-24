@@ -4,7 +4,7 @@ from time import sleep
 from datetime import datetime, timedelta
 from os import environ
 from fastapi import FastAPI, HTTPException, Form, Request, Response
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import RedirectResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_serializer, Field
 from http import HTTPStatus
@@ -21,6 +21,40 @@ from db_challenge import VirtualMachine, insert, get
 
 
 app = FastAPI()
+
+
+# region CH4_04
+class FreqError(Exception):
+    pass
+
+
+@app.exception_handler(FreqError)
+async def freq_error_handler(request: Request, exc: FreqError):
+    return JSONResponse(
+        status_code=HTTPStatus.BAD_REQUEST,
+        content={"error": str(exc)},  # Security risk (could expose sensitive info)
+        headers={
+            "X-Freq-Text": request.query_params.get("text"),
+        },
+    )
+
+
+def char_freq(text: str):
+    if not text:
+        raise FreqError("empty text")
+
+    freqs = {}
+    for c in text.lower():
+        freqs[c] = freqs.get(c, 0) + 1
+    return freqs
+
+
+@app.get("/freq")
+def freq(text: str):
+    return char_freq(text)
+
+
+# endregion CH4_04
 
 # region CH4_03
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5MB
