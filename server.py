@@ -1,6 +1,6 @@
 # region all imports
 import asyncio
-from time import sleep
+from time import sleep, perf_counter
 from datetime import datetime, timedelta
 from os import environ
 from fastapi import FastAPI, HTTPException, Form, Request, Response, Query
@@ -19,11 +19,23 @@ from io import BytesIO, StringIO
 
 import logging, csv, logs
 from db_challenge import VirtualMachine, insert, get
+import db
 import db_challenge_ch04
+import db_ch05_02
+
+# TODO: where is db import?
 
 # endregion all imports
 
+# region config_logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+# endregion config_logging
 
+# region setup
 app = FastAPI()
 
 if __name__ == "__main__":  # production `python server.py`
@@ -42,6 +54,40 @@ if __name__ == "__main__":  # production `python server.py`
         raise SystemExit(f"error: invalid port - {settings.port}")
 
     uvicorn.run(app, port=settings.port)
+# endregion setup
+
+
+# region do_some_logging
+@app.get("/posts/{login}")
+def get_posts(login: str, since: str = None):
+    if since:
+        since = datetime.strptime(since, "%Y%m%d")
+    else:
+        since = datetime.now() - timedelta(days=7)
+        # Round to day
+        since = datetime(since.year, since.month, since.day)
+
+    logging.info("get posts for %s since %s", login, since)
+    posts = db_ch05_02.query_posts(login, since)
+    return posts
+
+
+@app.middleware("http")
+async def timing(request: Request, call_next):
+    start = perf_counter()
+    response = await call_next(request)
+    duration = perf_counter() - start
+    logging.info(
+        "[metric:call.duration] %s %s %d - %.2fs",
+        request.method,
+        request.url,
+        response.status_code,
+        duration,
+    )
+    return response
+
+
+# endregion do_some_logging
 
 
 # region CH4_challenge
