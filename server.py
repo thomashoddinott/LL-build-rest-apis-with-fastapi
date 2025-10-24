@@ -3,8 +3,13 @@ import asyncio
 from time import sleep
 from datetime import datetime, timedelta
 from os import environ
-from fastapi import FastAPI, HTTPException, Form, Request, Response
-from fastapi.responses import RedirectResponse, StreamingResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Form, Request, Response, Query
+from fastapi.responses import (
+    RedirectResponse,
+    StreamingResponse,
+    JSONResponse,
+    PlainTextResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_serializer, Field
 from http import HTTPStatus
@@ -13,14 +18,63 @@ from PIL import Image
 from io import BytesIO
 
 import logging
+import yaml
 import logs  # dummy db
 import db
 from db_challenge import VirtualMachine, insert, get
+from db_challenge_ch04 import query_logs
 
 # endregion all imports
 
 
 app = FastAPI()
+
+
+# region CH4_challenge
+import yaml
+from fastapi.responses import PlainTextResponse
+
+
+@app.get("/logs")
+def get_logs(
+    offset: int = Query(0, ge=0),
+    count: int = Query(100, ge=1, le=1000),
+    request: Request = None,
+):
+    logs_list = list(query_logs(offset, count))
+
+    if not logs_list:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="no logs found")
+
+    accept = request.headers.get("accept", "").lower()
+
+    if "text/csv" in accept:
+        lines = ["level,time,message"]
+        for log in logs_list:
+            lines.append(f"{log['level']},{log['time'].isoformat()},{log['message']}")
+        return PlainTextResponse("\n".join(lines), media_type="text/csv")
+
+    elif "application/yaml" in accept:
+        yaml_data = yaml.dump(
+            {
+                "count": len(logs_list),
+                "offset": offset,
+                "logs": logs_list,
+            },
+            sort_keys=False,
+            default_flow_style=False,
+        )
+        return PlainTextResponse(yaml_data, media_type="application/yaml")
+
+    # Default JSON
+    return {
+        "count": len(logs_list),
+        "offset": offset,
+        "logs": logs_list,
+    }
+
+
+# endregion CH4_challenge
 
 
 # region CH4_04

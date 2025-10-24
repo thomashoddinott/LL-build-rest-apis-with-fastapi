@@ -1,0 +1,13 @@
+### JSON
+
+GET http://localhost:8000/logs?offset=10&count=20
+
+
+### CSV
+GET http://localhost:8000/logs?offset=10&count=20
+Accept: text/csv
+
+
+### YAML
+GET http://localhost:8000/logs?offset=10&count=20
+Accept: application/yaml
