@@ -1,0 +1,11 @@
+POST http://localhost:8000/trades
+
+< other_imports_ch05_04/trade.json
+
+# other_imports_ch05_04 git:(main) ✗ sqlite
+# 3 trades.db 
+# SQLite version 3.51.0 2025-06-12 13:14:41
+# Enter ".help" for usage hints.
+# sqlite> select * from trades;
+# 2024-08-13 18:27:44|warren|MSFT|41360|1000|buy
+# sqlite>
