@@ -1,0 +1,12 @@
+### Add User
+POST http://localhost:8000/users/chuck
+
+< other_imports_ch05_03/chuck.json
+
+### Get User
+GET http://localhost:8000/users/chuck
+
+### Add icon
+POST http://localhost:8000/users/chuck/icon
+
+< other_imports_ch05_03/logo.png

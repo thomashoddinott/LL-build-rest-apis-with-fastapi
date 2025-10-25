@@ -16,7 +16,7 @@ from http import HTTPStatus
 from typing import Annotated
 from PIL import Image
 from io import BytesIO, StringIO
-import logging, csv, logs
+import logging, csv, logs, base64
 
 from db.db_challenge import VirtualMachine, insert, get
 import db.db
@@ -54,6 +54,61 @@ if __name__ == "__main__":  # production `python server.py`
 
     uvicorn.run(app, port=settings.port)
 # endregion setup
+
+# region Security
+import other_imports_ch05_03.users as users
+
+
+@app.get("/users/{login}")
+def get_user(login: str):
+    user = users.get(login)
+    if user is None:
+        return JSONResponse(
+            status_code=HTTPStatus.NOT_FOUND,
+            content={"error": f"{login!r} not found"},
+        )
+
+    return user
+
+
+class User(BaseModel):
+    login: str
+    uid: int
+    name: str
+    is_admin: bool
+
+
+@app.post("/users/{login}")
+def set_user(login, user: User):
+    users.set(login, user.model_dump())
+    return {
+        "error": None,
+        "login": user.login,
+    }
+
+
+@app.post("/users/{login}/icon")
+async def set_icon(login: str, request: Request):
+    user = users.get(login)
+    if user is None:
+        return JSONResponse(
+            status_code=HTTPStatus.NOT_FOUND,
+            content={"error": f"{login!r} not found"},
+        )
+
+    data = await request.body()
+    user["icon"] = data
+    # user["icon"] = base64.b64encode(data).decode("ascii")  # store as text
+    # TODO: fix
+    users.set(login, user)
+
+    return {
+        "error": None,
+        "login": login,
+    }
+
+
+# endregion Security
 
 
 # region do_some_logging
