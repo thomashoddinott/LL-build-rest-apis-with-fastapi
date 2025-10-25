@@ -16,14 +16,13 @@ from http import HTTPStatus
 from typing import Annotated
 from PIL import Image
 from io import BytesIO, StringIO
-
 import logging, csv, logs
-from db_challenge import VirtualMachine, insert, get
-import db
-import db_challenge_ch04
-import db_ch05_02
 
-# TODO: where is db import?
+from db.db_challenge import VirtualMachine, insert, get
+import db.db
+import db.db_challenge_ch04
+import db.db_ch05_02
+
 
 # endregion all imports
 
